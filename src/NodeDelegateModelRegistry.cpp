@@ -1,7 +1,10 @@
 #include "NodeDelegateModelRegistry.hpp"
 
 #include <QtCore/QFile>
+
+#ifndef QT_NODES_HEADLESS
 #include <QtWidgets/QMessageBox>
+#endif
 
 using QtNodes::NodeDataType;
 using QtNodes::NodeDelegateModel;

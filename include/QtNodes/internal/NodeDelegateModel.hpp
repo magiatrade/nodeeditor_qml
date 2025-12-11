@@ -3,12 +3,15 @@
 #include <memory>
 
 #include <QMetaType>
+
+#ifndef QT_NODES_HEADLESS
 #include <QtWidgets/QWidget>
+#include "NodeStyle.hpp"
+#endif
 
 #include "Definitions.hpp"
 #include "Export.hpp"
 #include "NodeData.hpp"
-#include "NodeStyle.hpp"
 #include "Serializable.hpp"
 
 namespace QtNodes {
@@ -31,7 +34,9 @@ struct NodeValidationState
     QString _stateMessage{""};
 };
 
+#ifndef QT_NODES_HEADLESS
 class StyleCollection;
+#endif
 
 /**
  * The class wraps Node-specific data operations and propagates it to
@@ -79,13 +84,16 @@ public:
 
     virtual ConnectionPolicy portConnectionPolicy(PortType, PortIndex) const;
 
+#ifndef QT_NODES_HEADLESS
     NodeStyle const &nodeStyle() const;
     void setNodeStyle(NodeStyle const &style);
+#endif
 
     virtual void setInData(std::shared_ptr<NodeData> nodeData, PortIndex const portIndex) = 0;
 
     virtual std::shared_ptr<NodeData> outData(PortIndex const port) = 0;
 
+#ifndef QT_NODES_HEADLESS
     /**
      * It is recommented to preform lazy initialization for the embedded widget
      * and create it inside this function, not in the constructor of the current
@@ -99,6 +107,12 @@ public:
     virtual QWidget *embeddedWidget() = 0;
 
     virtual bool resizable() const { return false; }
+#else
+    /// Headless mode: no widget support, return nullptr
+    virtual void *embeddedWidget() { return nullptr; }
+
+    virtual bool resizable() const { return false; }
+#endif
 
 public Q_SLOTS:
     virtual void inputConnectionCreated(ConnectionId const &) {}
@@ -116,7 +130,9 @@ Q_SIGNALS:
     void computingStarted();
     void computingFinished();
 
+#ifndef QT_NODES_HEADLESS
     void embeddedWidgetSizeUpdated();
+#endif
 
     /**
      * @brief Call this function before deleting the data associated with ports.
@@ -141,7 +157,9 @@ Q_SIGNALS:
     void portsInserted();
 
 private:
+#ifndef QT_NODES_HEADLESS
     NodeStyle _nodeStyle;
+#endif
 
     NodeValidationState _nodeValidationState;
 };

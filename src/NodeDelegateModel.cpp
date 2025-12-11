@@ -1,11 +1,15 @@
 #include "NodeDelegateModel.hpp"
 
+#ifndef QT_NODES_HEADLESS
 #include "StyleCollection.hpp"
+#endif
 
 namespace QtNodes {
 
 NodeDelegateModel::NodeDelegateModel()
+#ifndef QT_NODES_HEADLESS
     : _nodeStyle(StyleCollection::nodeStyle())
+#endif
 {
     // Derived classes can initialize specific style here
 }
@@ -46,6 +50,7 @@ ConnectionPolicy NodeDelegateModel::portConnectionPolicy(PortType portType, Port
     return result;
 }
 
+#ifndef QT_NODES_HEADLESS
 NodeStyle const &NodeDelegateModel::nodeStyle() const
 {
     return _nodeStyle;
@@ -55,5 +60,6 @@ void NodeDelegateModel::setNodeStyle(NodeStyle const &style)
 {
     _nodeStyle = style;
 }
+#endif
 
 } // namespace QtNodes

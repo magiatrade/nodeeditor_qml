@@ -33,6 +33,7 @@ option(BUILD_SHARED_LIBS "Build as shared library" ON)
 option(BUILD_DEBUG_POSTFIX_D "Append d suffix to debug libraries" OFF)
 option(QT_NODES_FORCE_TEST_COLOR "Force colorized unit test output" OFF)
 option(USE_QT6 "Build with Qt6 (Enabled by default)" ON)
+option(QT_NODES_HEADLESS "Build headless mode (Qt::Core only, no GUI)" OFF)
 
 if(QT_NODES_DEVELOPER_DEFAULTS)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
@@ -49,85 +50,134 @@ endif()
 
 add_subdirectory(external)
 
-if(USE_QT6)
-  find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets)
+# =============================================================================
+# Qt Dependencies based on build mode
+# =============================================================================
+if(QT_NODES_HEADLESS)
+  # Headless mode: only Qt::Core required
+  if(USE_QT6)
+    find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core)
+  else()
+    find_package(QT NAMES Qt5 REQUIRED COMPONENTS Core)
+  endif()
+  find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
+  message(STATUS "QtNodes: HEADLESS mode - Qt::Core only (no GUI)")
 else()
-  find_package(QT NAMES Qt5 REQUIRED COMPONENTS Widgets)
+  # Full mode: Widgets, Gui, OpenGL required
+  if(USE_QT6)
+    find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets)
+  else()
+    find_package(QT NAMES Qt5 REQUIRED COMPONENTS Widgets)
+  endif()
+  find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui OpenGL)
+  message(STATUS "QtNodes: Full mode with GUI support")
 endif()
 
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui OpenGL)
 message(STATUS "QT_VERSION: ${QT_VERSION}, QT_DIR: ${QT_DIR}")
 
 if (${QT_VERSION} VERSION_LESS 5.11.0)
   message(FATAL_ERROR "Requires qt version >= 5.11.0, Your current version is ${QT_VERSION}")
 endif()
 
-set(CPP_SOURCE_FILES
-  src/AbstractGraphModel.cpp
-  src/AbstractNodeGeometry.cpp
-  src/BasicGraphicsScene.cpp
-  src/ConnectionGraphicsObject.cpp
-  src/ConnectionState.cpp
-  src/ConnectionStyle.cpp
-  src/DataFlowGraphModel.cpp
-  src/DataFlowGraphicsScene.cpp
-  src/DefaultConnectionPainter.cpp
-  src/DefaultHorizontalNodeGeometry.cpp
-  src/DefaultNodePainter.cpp
-  src/DefaultVerticalNodeGeometry.cpp
-  src/Definitions.cpp
-  src/GraphicsView.cpp
-  src/GraphicsViewStyle.cpp
-  src/NodeConnectionInteraction.cpp
-  src/NodeDelegateModel.cpp
-  src/NodeDelegateModelRegistry.cpp
-  src/NodeGraphicsObject.cpp
-  src/NodeState.cpp
-  src/NodeStyle.cpp
-  src/StyleCollection.cpp
-  src/UndoCommands.cpp
-  src/locateNode.cpp
-  resources/resources.qrc
-)
+# =============================================================================
+# Source files based on build mode
+# =============================================================================
+if(QT_NODES_HEADLESS)
+  # Headless: only model/logic files (no graphics, no painters, no views, no styles)
+  set(CPP_SOURCE_FILES
+    src/AbstractGraphModel.cpp
+    src/ConnectionState.cpp
+    src/DataFlowGraphModel.cpp
+    src/Definitions.cpp
+    src/NodeDelegateModel.cpp
+    src/NodeDelegateModelRegistry.cpp
+  )
 
-set(HPP_HEADER_FILES
-  include/QtNodes/internal/AbstractConnectionPainter.hpp
-  include/QtNodes/internal/AbstractGraphModel.hpp
-  include/QtNodes/internal/AbstractNodeGeometry.hpp
-  include/QtNodes/internal/AbstractNodePainter.hpp
-  include/QtNodes/internal/BasicGraphicsScene.hpp
-  include/QtNodes/internal/Compiler.hpp
-  include/QtNodes/internal/ConnectionGraphicsObject.hpp
-  include/QtNodes/internal/ConnectionIdHash.hpp
-  include/QtNodes/internal/ConnectionIdUtils.hpp
-  include/QtNodes/internal/ConnectionState.hpp
-  include/QtNodes/internal/ConnectionStyle.hpp
-  include/QtNodes/internal/DataFlowGraphicsScene.hpp
-  include/QtNodes/internal/DataFlowGraphModel.hpp
-  include/QtNodes/internal/Definitions.hpp
-  include/QtNodes/internal/Export.hpp
-  include/QtNodes/internal/GraphicsView.hpp
-  include/QtNodes/internal/GraphicsViewStyle.hpp
-  include/QtNodes/internal/locateNode.hpp
-  include/QtNodes/internal/NodeData.hpp
-  include/QtNodes/internal/NodeDelegateModel.hpp
-  include/QtNodes/internal/NodeDelegateModelRegistry.hpp
-  include/QtNodes/internal/NodeGraphicsObject.hpp
-  include/QtNodes/internal/NodeState.hpp
-  include/QtNodes/internal/NodeStyle.hpp
-  include/QtNodes/internal/OperatingSystem.hpp
-  include/QtNodes/internal/QStringStdHash.hpp
-  include/QtNodes/internal/QUuidStdHash.hpp
-  include/QtNodes/internal/Serializable.hpp
-  include/QtNodes/internal/Style.hpp
-  include/QtNodes/internal/StyleCollection.hpp
-  include/QtNodes/internal/DefaultConnectionPainter.hpp
-  include/QtNodes/internal/DefaultHorizontalNodeGeometry.hpp
-  include/QtNodes/internal/DefaultNodePainter.hpp
-  include/QtNodes/internal/DefaultVerticalNodeGeometry.hpp
-  include/QtNodes/internal/NodeConnectionInteraction.hpp
-  include/QtNodes/internal/UndoCommands.hpp
-)
+  set(HPP_HEADER_FILES
+    include/QtNodes/internal/AbstractGraphModel.hpp
+    include/QtNodes/internal/Compiler.hpp
+    include/QtNodes/internal/ConnectionIdHash.hpp
+    include/QtNodes/internal/ConnectionIdUtils.hpp
+    include/QtNodes/internal/ConnectionState.hpp
+    include/QtNodes/internal/DataFlowGraphModel.hpp
+    include/QtNodes/internal/Definitions.hpp
+    include/QtNodes/internal/Export.hpp
+    include/QtNodes/internal/NodeData.hpp
+    include/QtNodes/internal/NodeDelegateModel.hpp
+    include/QtNodes/internal/NodeDelegateModelRegistry.hpp
+    include/QtNodes/internal/QStringStdHash.hpp
+    include/QtNodes/internal/QUuidStdHash.hpp
+    include/QtNodes/internal/Serializable.hpp
+  )
+else()
+  # Full: all files including graphics
+  set(CPP_SOURCE_FILES
+    src/AbstractGraphModel.cpp
+    src/AbstractNodeGeometry.cpp
+    src/BasicGraphicsScene.cpp
+    src/ConnectionGraphicsObject.cpp
+    src/ConnectionState.cpp
+    src/ConnectionStyle.cpp
+    src/DataFlowGraphModel.cpp
+    src/DataFlowGraphicsScene.cpp
+    src/DefaultConnectionPainter.cpp
+    src/DefaultHorizontalNodeGeometry.cpp
+    src/DefaultNodePainter.cpp
+    src/DefaultVerticalNodeGeometry.cpp
+    src/Definitions.cpp
+    src/GraphicsView.cpp
+    src/GraphicsViewStyle.cpp
+    src/NodeConnectionInteraction.cpp
+    src/NodeDelegateModel.cpp
+    src/NodeDelegateModelRegistry.cpp
+    src/NodeGraphicsObject.cpp
+    src/NodeState.cpp
+    src/NodeStyle.cpp
+    src/StyleCollection.cpp
+    src/UndoCommands.cpp
+    src/locateNode.cpp
+    resources/resources.qrc
+  )
+
+  set(HPP_HEADER_FILES
+    include/QtNodes/internal/AbstractConnectionPainter.hpp
+    include/QtNodes/internal/AbstractGraphModel.hpp
+    include/QtNodes/internal/AbstractNodeGeometry.hpp
+    include/QtNodes/internal/AbstractNodePainter.hpp
+    include/QtNodes/internal/BasicGraphicsScene.hpp
+    include/QtNodes/internal/Compiler.hpp
+    include/QtNodes/internal/ConnectionGraphicsObject.hpp
+    include/QtNodes/internal/ConnectionIdHash.hpp
+    include/QtNodes/internal/ConnectionIdUtils.hpp
+    include/QtNodes/internal/ConnectionState.hpp
+    include/QtNodes/internal/ConnectionStyle.hpp
+    include/QtNodes/internal/DataFlowGraphicsScene.hpp
+    include/QtNodes/internal/DataFlowGraphModel.hpp
+    include/QtNodes/internal/Definitions.hpp
+    include/QtNodes/internal/Export.hpp
+    include/QtNodes/internal/GraphicsView.hpp
+    include/QtNodes/internal/GraphicsViewStyle.hpp
+    include/QtNodes/internal/locateNode.hpp
+    include/QtNodes/internal/NodeData.hpp
+    include/QtNodes/internal/NodeDelegateModel.hpp
+    include/QtNodes/internal/NodeDelegateModelRegistry.hpp
+    include/QtNodes/internal/NodeGraphicsObject.hpp
+    include/QtNodes/internal/NodeState.hpp
+    include/QtNodes/internal/NodeStyle.hpp
+    include/QtNodes/internal/OperatingSystem.hpp
+    include/QtNodes/internal/QStringStdHash.hpp
+    include/QtNodes/internal/QUuidStdHash.hpp
+    include/QtNodes/internal/Serializable.hpp
+    include/QtNodes/internal/Style.hpp
+    include/QtNodes/internal/StyleCollection.hpp
+    include/QtNodes/internal/DefaultConnectionPainter.hpp
+    include/QtNodes/internal/DefaultHorizontalNodeGeometry.hpp
+    include/QtNodes/internal/DefaultNodePainter.hpp
+    include/QtNodes/internal/DefaultVerticalNodeGeometry.hpp
+    include/QtNodes/internal/NodeConnectionInteraction.hpp
+    include/QtNodes/internal/UndoCommands.hpp
+  )
+endif()
 
 # If we want to give the option to build a static library,
 # set BUILD_SHARED_LIBS option to OFF
@@ -148,13 +198,24 @@ target_include_directories(QtNodes
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/QtNodes/internal>
 )
 
-target_link_libraries(QtNodes
-  PUBLIC
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Gui
-    Qt${QT_VERSION_MAJOR}::OpenGL
-)
+# =============================================================================
+# Link libraries based on build mode
+# =============================================================================
+if(QT_NODES_HEADLESS)
+  target_link_libraries(QtNodes
+    PUBLIC
+      Qt${QT_VERSION_MAJOR}::Core
+  )
+  target_compile_definitions(QtNodes PUBLIC QT_NODES_HEADLESS=1)
+else()
+  target_link_libraries(QtNodes
+    PUBLIC
+      Qt${QT_VERSION_MAJOR}::Core
+      Qt${QT_VERSION_MAJOR}::Widgets
+      Qt${QT_VERSION_MAJOR}::Gui
+      Qt${QT_VERSION_MAJOR}::OpenGL
+  )
+endif()
 
 target_compile_definitions(QtNodes
   PUBLIC
@@ -194,14 +255,14 @@ set_target_properties(QtNodes
 )
 
 ###########
-# Examples
+# Examples (skip in headless mode)
 ##
 
-if(BUILD_EXAMPLES)
+if(BUILD_EXAMPLES AND NOT QT_NODES_HEADLESS)
   add_subdirectory(examples)
 endif()
 
-if(BUILD_DOCS)
+if(BUILD_DOCS AND NOT QT_NODES_HEADLESS)
   add_subdirectory(docs)
 endif()
 
@@ -211,7 +272,7 @@ endif()
 enable_testing()
 
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND NOT QT_NODES_HEADLESS)
   add_subdirectory(test)
 endif()
 
