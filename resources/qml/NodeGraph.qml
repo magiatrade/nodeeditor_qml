@@ -39,6 +39,30 @@ Item {
     // Zoom and Pan
     property real zoomLevel: 1.0
     property point panOffset: Qt.point(0, 0)
+
+    // Fit view: zoom+pan para enquadrar TODOS os nodes na área visível.
+    // screen = nodePos * zoomLevel + panOffset (canvas TopLeft-scaled).
+    function fitAllNodes() {
+        var keys = Object.keys(nodeItems)
+        var minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9, found = false
+        for (var i = 0; i < keys.length; ++i) {
+            var it = nodeItems[keys[i]]
+            if (!it) continue
+            found = true
+            minX = Math.min(minX, it.x); minY = Math.min(minY, it.y)
+            maxX = Math.max(maxX, it.x + it.width)
+            maxY = Math.max(maxY, it.y + it.height)
+        }
+        if (!found) return
+        var pad = 60
+        var bw = (maxX - minX) + 2 * pad
+        var bh = (maxY - minY) + 2 * pad
+        var z = Math.min(width / bw, height / bh, 1.25)
+        z = Math.max(z, 0.08)
+        zoomLevel = z
+        panOffset = Qt.point(width / 2 - z * (minX + (maxX - minX) / 2),
+                             height / 2 - z * (minY + (maxY - minY) / 2))
+    }
     
     // Port dragging
     property var activePort: null
