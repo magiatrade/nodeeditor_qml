@@ -43,6 +43,13 @@ Item {
     // Fit view: zoom+pan para enquadrar TODOS os nodes na área visível.
     // screen = nodePos * zoomLevel + panOffset (canvas TopLeft-scaled).
     function fitAllNodes() {
+        // O canvas muda de tamanho quando o chart/book é destacado (o SplitView
+        // recalcula as larguras). Rodar o fit no meio dessa transição, com
+        // width/height ainda zerados, produzia pan fora da tela e o canvas
+        // ficava PRETO — nós existiam, ninguém via (reportado 07/08: clicar em
+        // auto-organizar com o chart destacado). Adia até o layout assentar.
+        if (width <= 0 || height <= 0) { Qt.callLater(fitAllNodes); return }
+
         var keys = Object.keys(nodeItems)
         var minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9, found = false
         for (var i = 0; i < keys.length; ++i) {
@@ -59,9 +66,18 @@ Item {
         var bh = (maxY - minY) + 2 * pad
         var z = Math.min(width / bw, height / bh, 1.25)
         z = Math.max(z, 0.08)
+        var px = width / 2 - z * (minX + (maxX - minX) / 2)
+        var py = height / 2 - z * (minY + (maxY - minY) / 2)
+
+        // Rede de segurança: qualquer NaN/Infinity no cálculo esconderia o
+        // grafo inteiro sem dizer nada. Melhor cair no 1:1 do que sumir.
+        if (!isFinite(z) || !isFinite(px) || !isFinite(py)) {
+            zoomLevel = 1.0
+            panOffset = Qt.point(0, 0)
+            return
+        }
         zoomLevel = z
-        panOffset = Qt.point(width / 2 - z * (minX + (maxX - minX) / 2),
-                             height / 2 - z * (minY + (maxY - minY) / 2))
+        panOffset = Qt.point(px, py)
     }
     
     // Port dragging
